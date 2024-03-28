@@ -4,13 +4,15 @@ import "./App.css";
 function App() {
   const canvasWidth = 600;
   const canvasHeight = 600;
-  const canvasRadius = 250;
+  const canvasRadius = 300;
   const radius = 15;
   const canvasRef = useRef(null);
   const lastRenderTimeRef = useRef(0);
   const ballXRef = useRef(canvasWidth / 2 - 1); // useRef를 사용하여 상태를 직접 변경할 변수 선언
   const ballYRef = useRef(canvasHeight / 2 - 100); // useRef를 사용하여 상태를 직접 변경할 변수 선언
-
+  const xSpeedRef = useRef(0);
+  const ySpeedRef = useRef(0.1);
+  const distance = useRef(0); // 공과 원의 중심과의 거리
   useEffect(() => {
     // 캔버스 요소 가져오기
     const canvas = canvasRef.current;
@@ -21,15 +23,25 @@ function App() {
     const canvasCenterY = canvas.height / 2;
 
     const animationLoop = (timestamp) => {
-      console.log(timestamp); // 애니메이션 동작하는지 확인
       const deltaTime = timestamp - lastRenderTimeRef.current; // 프레임 간격
       lastRenderTimeRef.current = timestamp;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 중력을 구현해보자
-      ballXRef.current += deltaTime * 0.1; // useRef로 선언한 변수 직접 변경
-      ballYRef.current += deltaTime * 0.05; // useRef로 선언한 변수 직접 변경
+      // 공과 원의 중심과의 거리
+      distance.current = Math.sqrt(
+        (canvasCenterX - ballXRef.current) ** 2 +
+          (canvasCenterY - ballYRef.current) ** 2
+      );
+
+      console.log(ballYRef.current);
+      // 원보다 안쪽에 있는 경우 : 점점 빨라짐
+      if (distance.current <= canvasRadius - radius) {
+        ballYRef.current += deltaTime * ySpeedRef.current;
+        ySpeedRef.current += 0.02;
+      } else {
+        ySpeedRef.current = -ySpeedRef.current;
+      }
 
       // 배경 그리기
       ctx.beginPath();
@@ -64,6 +76,8 @@ function App() {
         width={canvasWidth}
         height={canvasHeight}
       ></canvas>
+
+      <div></div>
     </div>
   );
 }
