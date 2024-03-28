@@ -13,6 +13,7 @@ function App() {
   const xSpeedRef = useRef(0);
   const ySpeedRef = useRef(0.1);
   const distance = useRef(0); // 공과 원의 중심과의 거리
+
   useEffect(() => {
     // 캔버스 요소 가져오기
     const canvas = canvasRef.current;
@@ -36,11 +37,16 @@ function App() {
 
       console.log(ballYRef.current);
       // 원보다 안쪽에 있는 경우 : 점점 빨라짐
-      if (distance.current <= canvasRadius - radius) {
+      if (distance.current < canvasRadius - radius) {
+        ballXRef.current += deltaTime * xSpeedRef.current;
         ballYRef.current += deltaTime * ySpeedRef.current;
         ySpeedRef.current += 0.02;
       } else {
-        ySpeedRef.current = -ySpeedRef.current;
+        const randomNumber = 0.8 + Math.random() * 0.15;
+        xSpeedRef.current = -xSpeedRef.current * randomNumber;
+        ySpeedRef.current = -ySpeedRef.current * 0.98;
+        ballXRef.current += deltaTime * xSpeedRef.current;
+        ballYRef.current += deltaTime * ySpeedRef.current;
       }
 
       // 배경 그리기
