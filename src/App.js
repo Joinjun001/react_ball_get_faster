@@ -10,9 +10,16 @@ function App() {
   const lastRenderTimeRef = useRef(0);
   const ballXRef = useRef(canvasWidth / 2 - 1); // useRef를 사용하여 상태를 직접 변경할 변수 선언
   const ballYRef = useRef(canvasHeight / 2 - 100); // useRef를 사용하여 상태를 직접 변경할 변수 선언
-  const xSpeedRef = useRef(0);
+  const xSpeedRef = useRef(0.3);
   const ySpeedRef = useRef(0.1);
   const distance = useRef(0); // 공과 원의 중심과의 거리
+
+  const lastBallXRef = useRef(0);
+  const lastBallYRef = useRef(0);
+
+  function randomNumber() {
+    return Math.random() * 0.15 + 0.8;
+  }
 
   useEffect(() => {
     // 캔버스 요소 가져오기
@@ -35,18 +42,29 @@ function App() {
           (canvasCenterY - ballYRef.current) ** 2
       );
 
-      console.log(ballYRef.current);
+      console.log(distance.current);
+      // 공이 벽에 끼는걸 막기 위해 벽에 닿기직전 좌표를 저장하자
+      if (
+        distance.current > canvasRadius - radius - 4 &&
+        distance.current < canvasRadius - radius - 1.5
+      ) {
+        lastBallXRef.current = ballXRef.current;
+        lastBallYRef.current = ballYRef.current;
+        console.log(lastBallXRef.current);
+      }
+
       // 원보다 안쪽에 있는 경우 : 점점 빨라짐
-      if (distance.current < canvasRadius - radius) {
+      if (distance.current < canvasRadius - radius - 1) {
         ballXRef.current += deltaTime * xSpeedRef.current;
         ballYRef.current += deltaTime * ySpeedRef.current;
         ySpeedRef.current += 0.02;
       } else {
-        const randomNumber = 0.8 + Math.random() * 0.15;
-        xSpeedRef.current = -xSpeedRef.current * randomNumber;
-        ySpeedRef.current = -ySpeedRef.current * 0.98;
-        ballXRef.current += deltaTime * xSpeedRef.current;
-        ballYRef.current += deltaTime * ySpeedRef.current;
+        // 원보다 바깥쪽에 있는 경우 : 속도 부호가 바뀜.
+
+        xSpeedRef.current = -xSpeedRef.current * randomNumber();
+        ySpeedRef.current = -ySpeedRef.current * randomNumber();
+        ballXRef.current = lastBallXRef + deltaTime * xSpeedRef.current;
+        ballYRef.current = lastBallXRef + deltaTime * ySpeedRef.current;
       }
 
       // 배경 그리기
