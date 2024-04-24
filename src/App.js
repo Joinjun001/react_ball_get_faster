@@ -1,107 +1,108 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import "./App.css";
 
 function App() {
-  const canvasWidth = 600;
-  const canvasHeight = 600;
-  const canvasRadius = 300;
-  const radius = 15;
   const canvasRef = useRef(null);
-  const lastRenderTimeRef = useRef(0);
-  const ballXRef = useRef(canvasWidth / 2 - 1); // useRef를 사용하여 상태를 직접 변경할 변수 선언
-  const ballYRef = useRef(canvasHeight / 2 - 100); // useRef를 사용하여 상태를 직접 변경할 변수 선언
-  const xSpeedRef = useRef(0.3);
-  const ySpeedRef = useRef(0.1);
-  const distance = useRef(0); // 공과 원의 중심과의 거리
-
-  const lastBallXRef = useRef(0);
-  const lastBallYRef = useRef(0);
-
-  function randomNumber() {
-    return Math.random() * 0.15 + 0.8;
-  }
 
   useEffect(() => {
-    // 캔버스 요소 가져오기
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+    const context = canvas.getContext("2d");
+    let animationFrameId;
+    let lastRenderTime = Date.now(); // 프레임간의 시간차를 계산하기 위함
 
-    // 캔버스의 중심 좌표 설정
-    const canvasCenterX = canvas.width / 2;
-    const canvasCenterY = canvas.height / 2;
+    const canvasWidth = 600;
+    const canvasHeight = 600;
+    const ballPosition = { x: 200, y: 100 }; // 초기 공의 위치
+    const ballVelocity = { x: 3, y: 3 }; // 초기 공의 속도
+    const ballAcceleration = { x: 0, y: 0 }; // 초기 공의 가속도
+    let ballWidth = 50;
+    let ballHeight = 50;
+    let count = 0; // 벽에 부딪힌 횟수
 
-    const animationLoop = (timestamp) => {
-      const deltaTime = timestamp - lastRenderTimeRef.current; // 프레임 간격
-      lastRenderTimeRef.current = timestamp;
+    let hue = 0; // 색조
+    let saturation = 100; // 채도
+    let lightness = 50; // 명도
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function increaseBall() {
+      ballWidth += 2;
+      ballHeight += 2;
+    }
 
-      // 공과 원의 중심과의 거리
-      distance.current = Math.sqrt(
-        (canvasCenterX - ballXRef.current) ** 2 +
-          (canvasCenterY - ballYRef.current) ** 2
-      );
+    // 캔버스에 그리기 함수
+    const draw = () => {
+      const currentTime = Date.now();
+      const dt = (currentTime - lastRenderTime) / 1000; // 초 단위로 변경
+      lastRenderTime = currentTime;
 
-      console.log(distance.current);
-      // 공이 벽에 끼는걸 막기 위해 벽에 닿기직전 좌표를 저장하자
-      if (
-        distance.current > canvasRadius - radius - 4 &&
-        distance.current < canvasRadius - radius - 1.5
-      ) {
-        lastBallXRef.current = ballXRef.current;
-        lastBallYRef.current = ballYRef.current;
-        console.log(lastBallXRef.current);
-      }
+      if (ballPosition.y < 0) {
+        count += 1;
+        ballPosition.y = 0; // 공을 0 위치에 놓고
+        increaseBall();
 
-      // 원보다 안쪽에 있는 경우 : 점점 빨라짐
-      if (distance.current < canvasRadius - radius - 1) {
-        ballXRef.current += deltaTime * xSpeedRef.current;
-        ballYRef.current += deltaTime * ySpeedRef.current;
-        ySpeedRef.current += 0.02;
+        ballVelocity.y -= 0.2;
+        ballVelocity.y = -ballVelocity.y; // 속도의 방향을 반대로 바꿉니다.
+      } else if (ballPosition.y > canvasHeight - ballHeight) {
+        count += 1;
+        increaseBall();
+
+        ballVelocity.y += 0.2;
+        ballPosition.y = canvasHeight - ballHeight; // 공을 캔버스의 최대 높이에 놓고
+        ballVelocity.y = -ballVelocity.y; // 속도의 방향을 반대로 바꿉니다.
+      } else if (ballPosition.x < 0) {
+        count += 1;
+        increaseBall();
+
+        ballVelocity.x -= 0.2;
+        ballPosition.x = 0; // 공을 0 위치에 놓고
+        ballVelocity.x = -ballVelocity.x; // 속도의 방향을 반대로 바꿉니다.
+      } else if (ballPosition.x > canvasWidth - ballWidth) {
+        count += 1;
+        increaseBall();
+
+        ballVelocity.x += 0.2;
+        ballPosition.x = canvasWidth - ballWidth; // 공을 캔버스의 최대 높이에 놓고
+        ballVelocity.x = -ballVelocity.x; // 속도의 방향을 반대로 바꿉니다.
       } else {
-        // 원보다 바깥쪽에 있는 경우 : 속도 부호가 바뀜.
-
-        xSpeedRef.current = -xSpeedRef.current * randomNumber();
-        ySpeedRef.current = -ySpeedRef.current * randomNumber();
-        ballXRef.current = lastBallXRef + deltaTime * xSpeedRef.current;
-        ballYRef.current = lastBallXRef + deltaTime * ySpeedRef.current;
+        ballVelocity.y += ballAcceleration.y;
+        ballPosition.y += ballVelocity.y;
+        ballVelocity.x += ballAcceleration.x;
+        ballPosition.x += ballVelocity.x;
       }
 
-      // 배경 그리기
-      ctx.beginPath();
-      ctx.arc(canvasCenterX, canvasCenterY, canvasRadius, 0, 2 * Math.PI);
-      ctx.fillStyle = "grey";
-      ctx.fill();
-      ctx.closePath();
+      // 캔버스를 지우고 다시 그리는 작업 수행
+      // context.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 공 그리기
-      ctx.beginPath();
-      ctx.arc(ballXRef.current, ballYRef.current, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = "blue";
-      ctx.fill();
-      ctx.closePath();
+      // 그리기 작업 수행
+      context.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`; // HSL 색 설정
+      context.fillRect(ballPosition.x, ballPosition.y, ballWidth, ballHeight);
+
+      // 사각형 테두리 그리기 설정
+      context.strokeStyle = "black"; // 테두리 색상을 파란색으로 설정
+      context.lineWidth = 1; // 테두리 선의 너비를 5로 설정
+      context.strokeRect(ballPosition.x, ballPosition.y, ballWidth, ballHeight); // 동일한 위치와 크기로 테두리 그리기
+
+      hue = (hue + 1) % 360; // 색조를 점차 증가시키고 360도가 되면 다시 0으로
 
       // 다음 프레임 요청
-      requestAnimationFrame(animationLoop);
+      animationFrameId = requestAnimationFrame(draw);
     };
 
-    requestAnimationFrame(animationLoop);
+    draw();
 
     return () => {
-      cancelAnimationFrame(animationLoop);
+      cancelAnimationFrame(animationFrameId);
     };
-  }, []); // 의존성 배열을 비워두어서, 한번만 실행되게함. 애니메이션 루프는 한번 돌게하면 계속돔
+  }, []);
 
   return (
     <div className="App">
+      <div className="title">컴퓨터 튕길떄까지 가속도 붙여보기</div>
       <canvas
-        id="bg-canvas"
+        className="bg-canvas"
         ref={canvasRef}
-        width={canvasWidth}
-        height={canvasHeight}
+        width={600}
+        height={600}
       ></canvas>
-
-      <div></div>
     </div>
   );
 }
